@@ -33,7 +33,6 @@ extension AttributeSyntax {
             .expression
             .as(MemberAccessExprSyntax.self)?
             .declName
-            .as(DeclReferenceExprSyntax.self)?
             .baseName
             .text
         )

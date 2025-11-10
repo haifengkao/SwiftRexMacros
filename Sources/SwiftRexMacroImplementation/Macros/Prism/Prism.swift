@@ -32,6 +32,7 @@ public struct Prism: MemberMacro {
     public static func expansion(
         of node: SwiftSyntax.AttributeSyntax,
         providingMembersOf declaration: some SwiftSyntax.DeclGroupSyntax,
+        conformingTo _: [SwiftSyntax.TypeSyntax],
         in context: some SwiftSyntaxMacros.MacroExpansionContext
     ) throws -> [SwiftSyntax.DeclSyntax] {
         guard let enumDeclaration = declaration.as(EnumDeclSyntax.self) else {
@@ -47,13 +48,14 @@ public struct Prism: MemberMacro {
                 $0.elements.compactMap { $0.name.text.isEmpty ? nil : $0 }
             }
 
-        return cases
-                .map(\.prism)
-                .map { $0.set(visibility: node.visibility) }
-                .compactMap { $0.as(DeclSyntax.self) } +
-            cases
-                .map(\.predicate)
-                .map { $0.set(visibility: node.visibility) }
-                .compactMap { $0.as(DeclSyntax.self) }
+        let prisms = cases
+            .map(\.prism)
+            .map { DeclSyntax($0.set(visibility: node.visibility)) }
+
+        let predicates = cases
+            .map(\.predicate)
+            .map { DeclSyntax($0.set(visibility: node.visibility)) }
+
+        return prisms + predicates
     }
 }

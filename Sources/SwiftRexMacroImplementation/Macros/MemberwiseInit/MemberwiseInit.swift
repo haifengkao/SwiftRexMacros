@@ -24,6 +24,7 @@ public struct MemberwiseInit: MemberMacro {
     public static func expansion(
         of node: SwiftSyntax.AttributeSyntax,
         providingMembersOf declaration: some SwiftSyntax.DeclGroupSyntax,
+        conformingTo _: [SwiftSyntax.TypeSyntax],
         in context: some SwiftSyntaxMacros.MacroExpansionContext
     ) throws -> [SwiftSyntax.DeclSyntax] {
         guard let structDeclaration = declaration.as(StructDeclSyntax.self) else {
@@ -82,31 +83,32 @@ public struct MemberwiseInit: MemberMacro {
             }
 
         return [
-            InitializerDeclSyntax(
-                signature: FunctionSignatureSyntax(parameterClause: FunctionParameterClauseSyntax(parameters: .init(itemsBuilder: {
-                    for member in members {
-                        FunctionParameterSyntax(
-                            firstName: member.propertyName,
-                            type: member.propertyType,
-                            defaultValue: member.defaultValue
-                        )
+            DeclSyntax(
+                InitializerDeclSyntax(
+                    signature: FunctionSignatureSyntax(parameterClause: FunctionParameterClauseSyntax(parameters: .init(itemsBuilder: {
+                        for member in members {
+                            FunctionParameterSyntax(
+                                firstName: member.propertyName,
+                                type: member.propertyType,
+                                defaultValue: member.defaultValue
+                            )
+                        }
+                    }))),
+                    bodyBuilder: {
+                        for member in members {
+                            InfixOperatorExprSyntax(
+                                leftOperand: MemberAccessExprSyntax(
+                                    base: DeclReferenceExprSyntax(baseName: .`self`),
+                                    declName: DeclReferenceExprSyntax(baseName: member.propertyName)
+                                ),
+                                operator: AssignmentExprSyntax(),
+                                rightOperand: DeclReferenceExprSyntax(baseName: member.propertyName)
+                            )
+                        }
                     }
-                }))),
-                bodyBuilder: {
-                    for member in members {
-                        InfixOperatorExprSyntax(
-                            leftOperand: MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(baseName: .`self`),
-                                declName: DeclReferenceExprSyntax(baseName: member.propertyName)
-                            ),
-                            operator: AssignmentExprSyntax(),
-                            rightOperand: DeclReferenceExprSyntax(baseName: member.propertyName)
-                        )
-                    }
-                }
+                )
+                .set(visibility: node.visibility)
             )
-            .set(visibility: node.visibility)
-            .cast(DeclSyntax.self)
         ]
     }
 }
@@ -119,6 +121,7 @@ func inferType(from typeSyntax: TypeSyntax) -> TypeSyntaxProtocol? {
     }
     if let closure = typeSyntax.as(FunctionTypeSyntax.self) {
         return AttributedTypeSyntax(
+            specifiers: [],
             attributes: AttributeListSyntax(itemsBuilder: {
                 AttributeSyntax(
                     attributeName: IdentifierTypeSyntax(name: .keyword(.escaping))
