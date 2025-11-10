@@ -987,7 +987,7 @@ final class MemberwiseInitTests: XCTestCase {
             struct BlackjackCard {
                 var array = [Int]()
 
-                init(array : [Int] = [Int] ()) {
+                init(array : [Int] = [Int]()) {
                     self.array = array
                 }
             }
@@ -1039,7 +1039,7 @@ final class MemberwiseInitTests: XCTestCase {
             struct BlackjackCard {
                 var dict = [Int: String]()
 
-                init(dict : [Int: String] = [Int: String] ()) {
+                init(dict : [Int: String] = [Int: String]()) {
                     self.dict = dict
                 }
             }
