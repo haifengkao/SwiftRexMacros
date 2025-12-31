@@ -65,6 +65,10 @@ extension TypeSyntaxProtocol {
     public var ︖: TypeSyntaxProtocol {
         OptionalTypeSyntax(wrappedType: self)
     }
+
+    public var trimmedType: TypeSyntax {
+        TypeSyntax(self.trimmed)
+    }
 }
 
 extension Syntax {
@@ -84,4 +88,3 @@ public func voidTuple() -> TupleExprSyntax {
         LabeledExprListSyntax()
     }
 }
-

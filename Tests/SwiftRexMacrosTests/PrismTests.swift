@@ -182,6 +182,359 @@ final class PrismTests: XCTestCase {
 #endif
     }
 
+    func testPrismSingleCaseWithSingleNamedAssociatedValueWithDefault() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case failed(reason: String = "")
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case failed(reason: String = "")
+
+                var failed: String? {
+                    get {
+                        guard case let .failed(value) = self else {
+                            return nil
+                        }
+                        return value
+                    }
+                    set {
+                        guard case .failed = self, let newValue = newValue else {
+                            return
+                        }
+                        self = .failed(reason: newValue)
+                    }
+                }
+
+                var isFailed: Bool {
+                    if case .failed = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
+    func testPrismSingleCaseWithSingleUnnamedAssociatedValueWithDefault() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case failed(Int = 0)
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case failed(Int = 0)
+
+                var failed: Int? {
+                    get {
+                        guard case let .failed(value) = self else {
+                            return nil
+                        }
+                        return value
+                    }
+                    set {
+                        guard case .failed = self, let newValue = newValue else {
+                            return
+                        }
+                        self = .failed(newValue)
+                    }
+                }
+
+                var isFailed: Bool {
+                    if case .failed = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
+    func testPrismSingleCaseWithDualNamedAssociatedValuesWithDefault() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case failed(first: Int = 3, other: Date)
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case failed(first: Int = 3, other: Date)
+
+                var failed: (first: Int, other: Date)? {
+                    get {
+                        guard case let .failed(first, other) = self else {
+                            return nil
+                        }
+                        return (first: first, other: other)
+                    }
+                    set {
+                        guard case .failed = self, let newValue = newValue else {
+                            return
+                        }
+                        self = .failed(first: newValue.first, other: newValue.other)
+                    }
+                }
+
+                var isFailed: Bool {
+                    if case .failed = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
+    func testPrismSingleCaseWithDualUnnamedAssociatedValuesWithDefault() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case failed(Double = 0, Double = 1)
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case failed(Double = 0, Double = 1)
+
+                var failed: (Double, Double)? {
+                    get {
+                        guard case let .failed(associatedValue0, associatedValue1) = self else {
+                            return nil
+                        }
+                        return (associatedValue0, associatedValue1)
+                    }
+                    set {
+                        guard case .failed = self, let newValue = newValue else {
+                            return
+                        }
+                        self = .failed(newValue.0, newValue.1)
+                    }
+                }
+
+                var isFailed: Bool {
+                    if case .failed = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
+    func testPrismSingleCaseWithMixedAssociatedValuesWithDefault() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case failed(Double, other: Date = .distantFuture)
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case failed(Double, other: Date = .distantFuture)
+
+                var failed: (Double, other: Date)? {
+                    get {
+                        guard case let .failed(associatedValue0, other) = self else {
+                            return nil
+                        }
+                        return (associatedValue0, other: other)
+                    }
+                    set {
+                        guard case .failed = self, let newValue = newValue else {
+                            return
+                        }
+                        self = .failed(newValue.0, other: newValue.other)
+                    }
+                }
+
+                var isFailed: Bool {
+                    if case .failed = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
+    func testPrismSingleCaseWithUnderscoreLabelAndDefault() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case failed(_ value: Int = 0, other: Date)
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case failed(_ value: Int = 0, other: Date)
+
+                var failed: (Int, other: Date)? {
+                    get {
+                        guard case let .failed(value, other) = self else {
+                            return nil
+                        }
+                        return (value, other: other)
+                    }
+                    set {
+                        guard case .failed = self, let newValue = newValue else {
+                            return
+                        }
+                        self = .failed(newValue.0, other: newValue.other)
+                    }
+                }
+
+                var isFailed: Bool {
+                    if case .failed = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
+    func testPrismSingleCaseWithDualUnnamedAssociatedValuesOnlyFirstDefault() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case failed(Int = 0, Int)
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case failed(Int = 0, Int)
+
+                var failed: (Int, Int)? {
+                    get {
+                        guard case let .failed(associatedValue0, associatedValue1) = self else {
+                            return nil
+                        }
+                        return (associatedValue0, associatedValue1)
+                    }
+                    set {
+                        guard case .failed = self, let newValue = newValue else {
+                            return
+                        }
+                        self = .failed(newValue.0, newValue.1)
+                    }
+                }
+
+                var isFailed: Bool {
+                    if case .failed = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
+    func testPrismSingleCaseWithInlineComment() throws {
+#if canImport(SwiftRexMacroImplementation)
+        assertMacroExpansion(
+            """
+            @Prism
+            enum Status {
+                case hello // comment
+            }
+            """,
+            expandedSource:
+            """
+            enum Status {
+                case hello // comment
+
+                var hello: Void? {
+                    if case .hello = self {
+                        ()
+                    } else {
+                        nil
+                    }
+                }
+
+                var isHello: Bool {
+                    if case .hello = self {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+#else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+#endif
+    }
+
     func testPrismSingleCaseWithDualUnnamedAssociatedValues() throws {
 #if canImport(SwiftRexMacroImplementation)
         assertMacroExpansion(
@@ -1272,7 +1625,7 @@ final class PrismTests: XCTestCase {
                     }
                 }
 
-                public var d: (first: Int , other: Date)? {
+                public var d: (first: Int, other: Date)? {
                     get {
                         guard case let .d(first, other) = self else {
                             return nil

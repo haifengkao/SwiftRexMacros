@@ -10,7 +10,7 @@ extension EnumCaseElementListSyntax.Element {
                     pattern: IdentifierPatternSyntax(identifier: TokenSyntax(stringLiteral: "is\(name.text.uppercaseFirst())")).with(\.leadingTrivia, .space),
                     typeAnnotation: .from(Bool.self),
                     accessorBlock: AccessorBlockSyntax(accessors: .getter(CodeBlockItemListSyntax {
-                        `if`(caseLet: name, equalsTo: .`self`) {
+                        `if`(caseLet: caseNameToken, equalsTo: .`self`) {
                             BooleanLiteralExprSyntax(booleanLiteral: true)
                         } else: {
                             BooleanLiteralExprSyntax(booleanLiteral: false)
@@ -26,7 +26,7 @@ extension EnumCaseElementListSyntax.Element {
             bindingSpecifier: TokenSyntax.keyword(.var),
             bindings: PatternBindingListSyntax {
                 PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: name).with(\.leadingTrivia, .space),
+                    pattern: IdentifierPatternSyntax(identifier: caseNameToken).with(\.leadingTrivia, .space),
                     typeAnnotation: TypeAnnotationSyntax(type: parameterClause.formattedType().︖),
                     accessorBlock: AccessorBlockSyntax(accessors: extractedAssociatedValues())
                 )
@@ -36,11 +36,15 @@ extension EnumCaseElementListSyntax.Element {
 }
 
 extension EnumCaseElementListSyntax.Element {
+    private var caseNameToken: TokenSyntax {
+        .identifier(name.text)
+    }
+
     func extractedAssociatedValues() -> AccessorBlockSyntax.Accessors {
         guard let associatedValues = parameterClause else {
             return .getter(
                 .block{
-                    `if`(caseLet: name, equalsTo: .`self`) {
+                    `if`(caseLet: caseNameToken, equalsTo: .`self`) {
                         voidTuple()
                     } else: {
                         Syntax.`nil`
@@ -50,11 +54,17 @@ extension EnumCaseElementListSyntax.Element {
         }
 
         let associatedValueNames: [(isNamed: Bool, name: TokenSyntax, nameOrIndex: TokenSyntax)] = associatedValues.parameters.enumerated().map { index, param in
-            if let name = param.firstName {
-                return (isNamed: true, name: name, nameOrIndex: name)
-            } else {
-                return (isNamed: false, name: "associatedValue\(index)".asToken, nameOrIndex: "\(index)".asToken)
+            let indexToken = "\(index)".asToken
+            if let firstName = param.firstName {
+                if firstName.tokenKind == .wildcard {
+                    let bindingName = param.secondName?.text ?? "associatedValue\(index)"
+                    return (isNamed: false, name: bindingName.asToken, nameOrIndex: indexToken)
+                }
+                let name = firstName.text
+                return (isNamed: true, name: name.asToken, nameOrIndex: name.asToken)
             }
+
+            return (isNamed: false, name: "associatedValue\(index)".asToken, nameOrIndex: indexToken)
         }
 
         let value = "value".asToken
@@ -63,14 +73,14 @@ extension EnumCaseElementListSyntax.Element {
         return .accessors(
             get: {
                 if associatedValueNames.count == 1 {
-                    `guard`(`case`(let: name, bindings: [value], equalsTo: .`self`), else: {
+                    `guard`(`case`(let: caseNameToken, bindings: [value], equalsTo: .`self`), else: {
                         ReturnStmtSyntax(expression: Syntax.`nil`)
                     })
 
                     ReturnStmtSyntax(expression: DeclReferenceExprSyntax(baseName: value))
                 } else {
                     let values = associatedValueNames.map(\.name)
-                    `guard`(`case`(let: name, bindings: values, equalsTo: .`self`), else: {
+                    `guard`(`case`(let: caseNameToken, bindings: values, equalsTo: .`self`), else: {
                         ReturnStmtSyntax(expression: Syntax.`nil`)
                     })
                     ReturnStmtSyntax(
@@ -89,7 +99,7 @@ extension EnumCaseElementListSyntax.Element {
             },
             set: {
                 `guard` {
-                    `case`(let: name, equalsTo: .`self`)
+                    `case`(let: caseNameToken, equalsTo: .`self`)
 
                     OptionalBindingConditionSyntax(
                         bindingSpecifier: .keyword(.let),
@@ -105,7 +115,7 @@ extension EnumCaseElementListSyntax.Element {
                         leftOperand: DeclReferenceExprSyntax(baseName: .`self`),
                         operator: AssignmentExprSyntax(),
                         rightOperand: `case`(
-                            name,
+                            caseNameToken,
                             setters: associatedValueNames.map { (label: $0.isNamed ? $0.name.text : nil, identifier: newValue) }
                         )
                     )
@@ -114,7 +124,7 @@ extension EnumCaseElementListSyntax.Element {
                         leftOperand: DeclReferenceExprSyntax(baseName: .`self`),
                         operator: AssignmentExprSyntax(),
                         rightOperand: `case`(
-                            name,
+                            caseNameToken,
                             setters: associatedValueNames.map {
                                 (
                                     label: $0.isNamed ? $0.name.text : nil,
@@ -137,7 +147,7 @@ extension Optional<EnumCaseParameterClauseSyntax> {
         else { return .from(Void.self) }
 
         if associatedValues.count == 1 {
-            return first.type
+            return first.type.trimmedType
         }
 
         return TupleTypeSyntax(elements: TupleTypeElementListSyntax(
@@ -150,8 +160,10 @@ extension Optional<EnumCaseParameterClauseSyntax> {
 
 extension EnumCaseParameterListSyntax.Element {
     var tupleElement: TupleTypeElementSyntax {
-        firstName.map {
-            TupleTypeElementSyntax(firstName: $0, colon: TokenSyntax(.colon, presence: .present), type: type)
-        } ?? TupleTypeElementSyntax(type: type)
+        if let firstName, firstName.tokenKind != .wildcard {
+            return TupleTypeElementSyntax(firstName: .identifier(firstName.text), colon: TokenSyntax(.colon, presence: .present), type: type.trimmedType)
+        }
+
+        return TupleTypeElementSyntax(type: type.trimmedType)
     }
 }
